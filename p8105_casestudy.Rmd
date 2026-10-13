@@ -1,0 +1,58 @@
+---
+title: "p8105_casestudy"
+author: "Yiman Rui"
+date: "2026-10-13"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(p8105.datasets)
+library(tidyverse)
+library(ggplot2)
+data(nyc_airbnb)
+```
+
+# Some questions
+* where are the most expensive airbnbs in nyc?
+* do description correlate with price?
+* what about text reviews?
+
+
+```{r}
+nyc_airbnb |>
+  filter(neighbourhood_group =="Manhattan") |>
+  count(room_type, neighbourhood) |>
+  pivot_wider(
+    names_from = room_type,
+    values_from = n
+  )
+```
+
+# price
+```{r}
+nyc_airbnb |>
+  group_by(neighbourhood_group) |>
+  mutate(price_rank = min_rank(desc(price))) |>
+  filter(price < 3)
+```
+
+```{r}
+nyc_airbnb |>
+  filter(price < 1000) |>
+  ggplot(aes(x=price)) +
+  geom_histogram() +
+  facet_grid(room_type ~ neighbourhood)
+```
+## Host stuff
+```{r}
+nyc_airbnb |>
+  filter(neighbourhood_group == "Manhattan") |>
+  filter(price < 500) |>
+  ggplot(aes (x = neighbourhood, y = price)) +
+  geom_boxplot()
+```
+
