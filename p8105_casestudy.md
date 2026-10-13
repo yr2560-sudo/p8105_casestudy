@@ -25,6 +25,7 @@ library(tidyverse)
 
 ``` r
 library(ggplot2)
+library(leaflet)
 data(nyc_airbnb)
 ```
 
@@ -65,24 +66,35 @@ nyc_airbnb |>
 nyc_airbnb |>
   group_by(neighbourhood_group) |>
   mutate(price_rank = min_rank(desc(price))) |>
-  filter(price < 3)
+  filter(price_rank < 3)
 ```
 
-    ## # A tibble: 0 × 18
-    ## # Groups:   neighbourhood_group [0]
-    ## # ℹ 18 variables: id <dbl>, review_scores_location <dbl>, name <chr>,
-    ## #   host_id <dbl>, host_name <chr>, neighbourhood_group <chr>,
-    ## #   neighbourhood <chr>, lat <dbl>, long <dbl>, room_type <chr>, price <dbl>,
-    ## #   minimum_nights <dbl>, number_of_reviews <dbl>, last_review <date>,
-    ## #   reviews_per_month <dbl>, calculated_host_listings_count <dbl>,
-    ## #   availability_365 <dbl>, price_rank <int>
+    ## # A tibble: 10 × 18
+    ## # Groups:   neighbourhood_group [5]
+    ##          id review_scores_location name    host_id host_name neighbourhood_group
+    ##       <dbl>                  <dbl> <chr>     <dbl> <chr>     <chr>              
+    ##  1 12156541                     NA One la…  6.53e7 Bobnkay   Queens             
+    ##  2  3103784                     10 A Priv…  9.83e6 Michael   Brooklyn           
+    ##  3 17751140                     10 Room i…  1.20e8 Sonia     Queens             
+    ##  4  4737930                      8 Spanis…  1.24e6 Olson     Manhattan          
+    ##  5 15556066                     NA Huge o…  1.00e8 Serin     Bronx              
+    ##  6  9528920                      9 Quiet,…  3.91e6 Amy       Manhattan          
+    ##  7 18051877                     NA Turn o…  2.68e6 Melissa   Staten Island      
+    ##  8 16429718                     NA Charmi…  1.36e7 Lena      Brooklyn           
+    ##  9 16057443                     NA Modern…  1.03e8 Mia       Bronx              
+    ## 10  2176866                     NA Exclus…  1.11e7 Michael   Staten Island      
+    ## # ℹ 12 more variables: neighbourhood <chr>, lat <dbl>, long <dbl>,
+    ## #   room_type <chr>, price <dbl>, minimum_nights <dbl>,
+    ## #   number_of_reviews <dbl>, last_review <date>, reviews_per_month <dbl>,
+    ## #   calculated_host_listings_count <dbl>, availability_365 <dbl>,
+    ## #   price_rank <int>
 
 ``` r
 nyc_airbnb |>
   filter(price < 1000) |>
   ggplot(aes(x=price)) +
   geom_histogram() +
-  facet_grid(room_type ~ neighbourhood)
+  facet_grid(room_type ~ neighbourhood_group)
 ```
 
     ## `stat_bin()` using `bins = 30`. Pick better value `binwidth`.
@@ -94,8 +106,42 @@ Host stuff
 nyc_airbnb |>
   filter(neighbourhood_group == "Manhattan") |>
   filter(price < 500) |>
-  ggplot(aes (x = neighbourhood, y = price)) +
-  geom_boxplot()
+  filter(room_type != "Shared room") |>
+  mutate(neighbourhood = fct_reorder(neighbourhood, price)) |>
+  ggplot(aes(x = neighbourhood, y = price)) +
+  geom_boxplot() +
+  facet_grid(. ~ room_type) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
 ![](p8105_casestudy_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+
+``` r
+nyc_airbnb |>
+  filter(neighbourhood_group == "Manhattan") |>
+  filter(room_type == "Entire home/apt") |>
+  filter(price < 500) |>
+  ggplot(aes(x = lat , y = long, color = price)) +
+  geom_point(alpha = .5)
+```
+
+![](p8105_casestudy_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
+
+make leaflet map
+
+``` r
+pal = colorNumeric(
+  palette = "viridis", 
+  domain = 1:500
+)
+nyc_airbnb |>
+  filter(neighbourhood_group == "Manhattan") |>
+  filter(room_type == "Entire home/apt") |>
+  filter(price < 500) |>
+  # sample_n(50) |>
+  leaflet() |>
+  addTiles() |> # the map in the background
+  addCircleMarkers(~lat, ~ long, color = ~pal(price), radius = .5)
+```
+
+![](p8105_casestudy_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->

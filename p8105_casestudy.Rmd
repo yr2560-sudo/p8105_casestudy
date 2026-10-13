@@ -6,13 +6,14 @@ output: github_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, fig.width = 6, fig.asp = .6)
 ```
 
 ```{r}
 library(p8105.datasets)
 library(tidyverse)
 library(ggplot2)
+library(leaflet)
 data(nyc_airbnb)
 ```
 
@@ -37,7 +38,7 @@ nyc_airbnb |>
 nyc_airbnb |>
   group_by(neighbourhood_group) |>
   mutate(price_rank = min_rank(desc(price))) |>
-  filter(price < 3)
+  filter(price_rank < 3)
 ```
 
 ```{r}
@@ -45,14 +46,42 @@ nyc_airbnb |>
   filter(price < 1000) |>
   ggplot(aes(x=price)) +
   geom_histogram() +
-  facet_grid(room_type ~ neighbourhood)
+  facet_grid(room_type ~ neighbourhood_group)
 ```
 ## Host stuff
 ```{r}
 nyc_airbnb |>
   filter(neighbourhood_group == "Manhattan") |>
   filter(price < 500) |>
-  ggplot(aes (x = neighbourhood, y = price)) +
-  geom_boxplot()
+  filter(room_type != "Shared room") |>
+  mutate(neighbourhood = fct_reorder(neighbourhood, price)) |>
+  ggplot(aes(x = neighbourhood, y = price)) +
+  geom_boxplot() +
+  facet_grid(. ~ room_type) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+```{r}
+nyc_airbnb |>
+  filter(neighbourhood_group == "Manhattan") |>
+  filter(room_type == "Entire home/apt") |>
+  filter(price < 500) |>
+  ggplot(aes(x = lat , y = long, color = price)) +
+  geom_point(alpha = .5)
+```
+
+make leaflet map
+```{r}
+pal = colorNumeric(
+  palette = "viridis", 
+  domain = 1:500
+)
+nyc_airbnb |>
+  filter(neighbourhood_group == "Manhattan") |>
+  filter(room_type == "Entire home/apt") |>
+  filter(price < 500) |>
+  # sample_n(50) |>
+  leaflet() |>
+  addTiles() |> # the map in the background
+  addCircleMarkers(~lat, ~ long, color = ~pal(price), radius = .5)
 ```
 
